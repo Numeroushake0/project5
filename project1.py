@@ -29,6 +29,13 @@ class Record:
     def add_phone(self, phone):
         self.phones.append(Phone(phone))
     
+    def edit_phone(self, old_phone, new_phone):
+        for i, phone in enumerate(self.phones):
+            if phone.value == old_phone:
+                self.phones[i] = Phone(new_phone)
+                return
+        raise ValueError("Phone number not found.")
+    
     def add_birthday(self, birthday):
         self.birthday = Birthday(birthday)
 
