@@ -35,7 +35,6 @@ class Phone(Field):
 
 class Birthday(Field):
     def __init__(self, value):
-        # Перевірка формату дати
         if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', value):
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
         super().__init__(value)
@@ -55,7 +54,6 @@ class Record:
     def edit_phone(self, old_phone, new_phone):
         for phone in self.phones:
             if phone.value == old_phone:
-                # Перевірка на валідність нового номера телефону
                 try:
                     Phone(new_phone)
                     phone.value = new_phone
@@ -94,7 +92,6 @@ class AddressBook(UserDict):
         upcoming = []
         for record in self.data.values():
             if record.birthday:
-                # Отримуємо день народження цього року
                 bday_day, bday_month, bday_year = map(int, record.birthday.value.split('.'))
                 bday_this_year = datetime(today.year, bday_month, bday_day).date()
                 if bday_this_year < today:
@@ -166,7 +163,7 @@ def main():
     while True:
         user_input = input("Enter a command: ")
         command, args = parse_input(user_input)
-        command = command.lower()  # Перетворення команди на малий регістр
+        command = command.lower()  
         if command in ["close", "exit"]:
             print("Good bye!")
             break
@@ -188,4 +185,4 @@ def main():
             print("Invalid command.")
 
 if __name__ == "__main__":
-    main()
+ main()
