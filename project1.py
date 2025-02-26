@@ -35,10 +35,10 @@ class Phone(Field):
 
 class Birthday(Field):
     def __init__(self, value):
-        try:
-            self.value = datetime.strptime(value, "%d.%m.%Y").date()
-        except ValueError:
+        # Перевірка формату дати
+        if not re.match(r'^\d{2}\.\d{2}\.\d{4}$', value):
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
+        super().__init__(value)
 
 class Record:
     def __init__(self, name):
@@ -55,8 +55,13 @@ class Record:
     def edit_phone(self, old_phone, new_phone):
         for phone in self.phones:
             if phone.value == old_phone:
-                phone.value = new_phone
-                return
+                # Перевірка на валідність нового номера телефону
+                try:
+                    Phone(new_phone)
+                    phone.value = new_phone
+                    return
+                except ValueError:
+                    raise ValueError("New phone number is not valid.")
         raise ValueError("Old phone not found.")
 
     def find_phone(self, phone):
@@ -70,7 +75,7 @@ class Record:
 
     def __str__(self):
         phones = '; '.join(p.value for p in self.phones)
-        birthday = self.birthday.value.strftime("%d.%m.%Y") if self.birthday else "No birthday set"
+        birthday = self.birthday.value if self.birthday else "No birthday set"
         return f"Contact name: {self.name.value}, phones: {phones}, birthday: {birthday}"
 
 class AddressBook(UserDict):
@@ -89,7 +94,9 @@ class AddressBook(UserDict):
         upcoming = []
         for record in self.data.values():
             if record.birthday:
-                bday_this_year = record.birthday.value.replace(year=today.year)
+                # Отримуємо день народження цього року
+                bday_day, bday_month, bday_year = map(int, record.birthday.value.split('.'))
+                bday_this_year = datetime(today.year, bday_month, bday_day).date()
                 if bday_this_year < today:
                     bday_this_year = bday_this_year.replace(year=today.year + 1)
                 days_to_bday = (bday_this_year - today).days
@@ -129,7 +136,7 @@ def show_birthday(args, book):
     record = book.find(name)
     if not record or not record.birthday:
         return "No birthday found."
-    return f"{name}'s birthday is {record.birthday.value.strftime('%d.%m.%Y')}"
+    return f"{name}'s birthday is {record.birthday.value}"
 
 @input_error
 def birthdays(_, book):
@@ -138,12 +145,28 @@ def birthdays(_, book):
         return "No upcoming birthdays."
     return "\n".join([f"{b['name']}: {b['birthday']}" for b in upcoming])
 
+@input_error
+def change_phone(args, book):
+    name, old_phone, new_phone = args.split()
+    record = book.find(name)
+    if not record:
+        raise KeyError
+    record.edit_phone(old_phone, new_phone)
+    return "Phone number changed."
+
+@input_error
+def show_all_contacts(_, book):
+    if not book:
+        return "No contacts in the address book."
+    return "\n".join(str(record) for record in book.values())
+
 def main():
     book = AddressBook()
     print("Welcome to the assistant bot!")
     while True:
         user_input = input("Enter a command: ")
         command, args = parse_input(user_input)
+        command = command.lower()  # Перетворення команди на малий регістр
         if command in ["close", "exit"]:
             print("Good bye!")
             break
@@ -157,8 +180,10 @@ def main():
             print(show_birthday(args, book))
         elif command == "birthdays":
             print(birthdays(args, book))
+        elif command == "change":
+            print(change_phone(args, book))
         elif command == "all":
-            print(book)
+            print(show_all_contacts(args, book))
         else:
             print("Invalid command.")
 
